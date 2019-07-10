@@ -18,7 +18,6 @@ public class TestResolver {
 
                 resolver.resolve(locationProvider, listener);
 
-                //wait for max time
                 Thread.sleep(LocationProvider.MAX_RUNNING_TIME + 5000L);
 
                 listener.assertResult();
@@ -49,12 +48,12 @@ public class TestResolver {
         }
 
         void assertResult() {
-            // On my laptop, BasicCountyResolver resolves 2k locations / second.
+            // BasicCountyResolver should resolve at least 2k locations / second.
             // We would like implementations to be at least better than that.
             int perSecond = locationProvider.getLinesRead() / (int) (locationProvider.getRuntime() / 1000L);
-            System.out.println("resolved total: " + locationProvider.getLinesRead());
-            System.out.println("resolved / second: " + perSecond);
-            Assert.assertTrue("Surely you can do better than the MostBasicCountyResolver. You did resolve " + perSecond, perSecond > 2_000);
+            System.out.println("Resolved total: " + locationProvider.getLinesRead());
+            System.out.println("Resolved / second: " + perSecond);
+            Assert.assertTrue("The BasicCountyResolver should resolve at least 2000 location per second. This attempt was only : " + perSecond, perSecond > 2_000);
 
             Map<String, Integer> currentStatus = countyResolver.getResult();
             int resolved = 0;
@@ -63,8 +62,8 @@ public class TestResolver {
             }
 
             float percentResolved = (float) resolved / locationProvider.getLinesRead();
-            System.out.println("percent resolved: " + percentResolved);
-            Assert.assertTrue("You resolved less than 90% (" + percentResolved + "%), you made too big a trade-off for speed", percentResolved > 0.9f);
+            System.out.println("Percent resolved: " + percentResolved);
+            Assert.assertTrue("You resolved less than 90% of locations (" + percentResolved + "%), you made too big a trade-off for speed", percentResolved > 0.9f);
 
         }
 
