@@ -46,6 +46,7 @@ You can trade-off between speed (time it took to resolve the location) and accur
 ## Other Useful Information 
 
 - You solution should extend the the `CountryResolver` class.
+- We have included a `BasicCountyResolver` as an example.
 - The project should compile using maven (i.e. `mvn clean install`)
 - Feel free to use external libraries so long as your solution cleanly runs using maven.
 - Document your progress and failures using the git commits.
