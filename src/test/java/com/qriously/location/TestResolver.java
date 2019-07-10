@@ -48,8 +48,6 @@ public class TestResolver {
         }
 
         void assertResult() {
-            // BasicCountyResolver should resolve at least 2k locations / second.
-            // We would like implementations to be at least better than that.
             int perSecond = locationProvider.getLinesRead() / (int) (locationProvider.getRuntime() / 1000L);
             System.out.println("Resolved total: " + locationProvider.getLinesRead());
             System.out.println("Resolved / second: " + perSecond);
