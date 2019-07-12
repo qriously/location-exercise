@@ -5,7 +5,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-public class ResolverTests {
+public class ResolverTest {
 
     @Test
     public void testBasicCountyResolver() throws IOException {
@@ -23,7 +23,7 @@ public class ResolverTests {
 
             float resolveRate = resolver.getResolvedCount() / resolver.getRuntimeDuration();
             System.out.println(String.format("Resolver managed to resolve locations at %.2f / second", resolveRate));
-            Assert.assertTrue("Resolver rate was less than required threshold (1000 per second)", (resolveRate > 2000));
+            Assert.assertTrue("Resolver rate was less than required threshold (1000 per second)", (resolveRate > 1000));
         }
     }
 
