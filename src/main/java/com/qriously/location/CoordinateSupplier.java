@@ -12,7 +12,7 @@ public class CoordinateSupplier implements Supplier<Coordinate>, Closeable {
 
     private BufferedReader reader;
 
-    public CoordinateSupplier() {
+    CoordinateSupplier() {
         reader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(LOCATIONS_CSV)));
     }
 

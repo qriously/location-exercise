@@ -64,7 +64,6 @@ public class BasicCountyResolver extends CountyResolver implements Closeable {
      * Returns the filesystem path of shapefile without file-extension
      */
     private String extractShapeFiles(String shapeFileWithoutExtension) throws IOException {
-
         String shapeFilePathRoot = Paths.get(
                 System.getProperty(TEMP_DIR),
                 shapeFileWithoutExtension + "-" + System.currentTimeMillis()).toString();

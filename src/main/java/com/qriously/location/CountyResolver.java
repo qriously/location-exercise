@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class CountyResolver implements Runnable, Closeable {
 
-    private static int MAX_RUNTIME = 30;
+    private static Duration MAX_RUNTIME = Duration.ofSeconds(60);
 
     private CoordinateSupplier coordinateSupplier;
 
@@ -18,22 +18,20 @@ public abstract class CountyResolver implements Runnable, Closeable {
     private Map<String, AtomicInteger> results = new ConcurrentHashMap<>();
 
     /**
-     * CountyResolvers must be initialised with a coordinateSupplier
+     * CountyResolvers must be initialised with a coordinateSupplier.
      */
     CountyResolver(CoordinateSupplier coordinateSupplier) {
         this.coordinateSupplier = coordinateSupplier;
     }
 
     /**
-     * Resolve the given coordinate to a US county
-     * <p>
+     * Resolve the given coordinate to a US county.
      * Returns the LVL_2_ID code corresponding to the US county or null if unresolved.
      */
     public abstract String resolve(Coordinate coordinate);
 
     /**
      * Run the resolver
-     * - While there are
      */
     @Override
     public void run() {
@@ -41,7 +39,7 @@ public abstract class CountyResolver implements Runnable, Closeable {
 
         Coordinate coordinate;
         try {
-            while (getRuntimeDuration() < MAX_RUNTIME && (coordinate = coordinateSupplier.get()) != null) {
+            while (getRuntimeDuration() < MAX_RUNTIME.getSeconds() && (coordinate = coordinateSupplier.get()) != null) {
                 attempted++;
                 String county = resolve(coordinate);
                 if (county != null) {
@@ -67,35 +65,35 @@ public abstract class CountyResolver implements Runnable, Closeable {
     /**
      * Returns the count of resolved locations
      */
-    public int getResolvedCount() {
+    int getResolvedCount() {
         return resolved;
     }
 
     /**
      * Returns the count of resolved locations
      */
-    public int getAttemptedCount() {
+    int getAttemptedCount() {
         return attempted;
     }
 
     /**
      * Returns the duration in seconds for the last run of the resolver.
      */
-    public long getRuntimeDuration() {
+    long getRuntimeDuration() {
         return (end - start) / Duration.ofSeconds(1).toMillis();
     }
 
     /**
      * Returns the fraction of resolve attempts that were successful.
      */
-    public float getResolvedFraction() {
+    float getResolvedFraction() {
         return (float) resolved / attempted;
     }
 
     /**
      * Returns true if the resolver process failed otherwise false.
      */
-    public boolean resolverError() {
+    boolean resolverError() {
         return didError;
     }
 
