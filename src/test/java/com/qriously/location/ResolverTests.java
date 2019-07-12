@@ -8,7 +8,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class TestResolver {
+public class ResolverTests {
 
     static long THREAD_SLEEP = 100;
 
@@ -33,7 +33,7 @@ public class TestResolver {
     }
 
     @Test
-    public void runBasicResolver() throws IOException {
+    public void testBasicCountyResolver() throws IOException {
         ThreadPoolExecutor executorService = initialiseThreadPool(false);
 
         try (CoordinateSupplier coordinateSupplier = new CoordinateSupplier();
