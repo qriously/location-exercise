@@ -10,77 +10,88 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Executors;
+import java.io.*;
+import java.nio.file.Paths;
 
-/**
- * BasicCountyResolver
- * - Resolves location coordinates to US counties
- */
-public class BasicCountyResolver extends CountyResolver {
+public class BasicCountyResolver extends CountyResolver implements Closeable {
 
-    private Map<String, Integer> currentMap = new HashMap<>();
+    private static final String TEMP_DIR = "java.io.tmpdir";
+    private static final String[] SHAPE_FILE_EXTENSIONS = new String[]{ ".dbf", ".prj", ".shp", ".shx" };
+    private final static String USA_COUNTIES = "usa_counties";
 
-    private String pathToShapeFile;
+    private final String shapeFilePath;
 
-    @Override
-    public void init() {
-        pathToShapeFile = copyShapeFilesToTempDirectory("usa_counties");
+    /**
+     * Initialise the BasicCountyResolver
+     */
+    public BasicCountyResolver(CoordinateSupplier coordinateSupplier) throws IOException {
+        super(coordinateSupplier);
+        shapeFilePath = extractShapeFiles(USA_COUNTIES);
     }
 
     @Override
-    public void resolve(final LocationProvider readFrom, final OnCompletedListener listener) {
+    public String resolve(Coordinate coordinate) {
+        String countyId = null;
+        try {
+            FileDataStore store = FileDataStoreFinder.getDataStore(new File(shapeFilePath + ".shp"));
+            SimpleFeatureSource featureSource = store.getFeatureSource();
+            String geometryPropertyName = featureSource.getSchema().getGeometryDescriptor().getLocalName();
+            Filter filter = CQL.toFilter("CONTAINS(" + geometryPropertyName + ", POINT(" + coordinate.longitude + " " + coordinate.latitude + "))");
 
-        Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                SimpleFeatureIterator featureIterator = null;
+            SimpleFeatureCollection features = featureSource.getFeatures(filter);
+            SimpleFeatureIterator featureIterator = features.features();
+            while (featureIterator.hasNext()) {
+                SimpleFeature sf = featureIterator.next();
+                countyId = sf.getAttribute("LVL_2_ID").toString();
 
-                try {
-                    FileDataStore store = FileDataStoreFinder.getDataStore(new File(pathToShapeFile));
-                    SimpleFeatureSource featureSource = store.getFeatureSource();
-                    String geometryPropertyName = featureSource.getSchema().getGeometryDescriptor().getLocalName();
-
-                    double[] loc;
-
-                    while ((loc = readFrom.getNextLocation()) != null) {
-
-                        Filter filter = CQL.toFilter("CONTAINS(" + geometryPropertyName + ", POINT(" + loc[1] + " " + loc[0] + "))");
-
-                        SimpleFeatureCollection features = featureSource.getFeatures(filter);
-
-                        featureIterator = features.features();
-                        while (featureIterator.hasNext()) {
-                            SimpleFeature sf = featureIterator.next();
-                            String countyId = sf.getAttribute("LVL_2_ID").toString();
-                            if (!currentMap.containsKey(countyId)) {
-                                currentMap.put(countyId, 0);
-                            }
-
-                            currentMap.put(countyId, currentMap.get(countyId) + 1);
-                        }
-                        featureIterator.close();
-                    }
-                } catch (IOException | CQLException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (featureIterator != null) {
-                        featureIterator.close();
-                    }
+                if (countyId != null) {
+                    break;
                 }
-                listener.completed();
             }
-        };
 
-        Executors.newSingleThreadExecutor().execute(task);
+            featureIterator.close();
+
+        } catch (IOException | CQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return countyId;
     }
+
+    /**
+     * Extract shapefiles from bundled resources to a temporary location
+     *
+     * Returns the filesystem path of shapefile without file-extension
+     */
+    private String extractShapeFiles(String shapeFileWithoutExtension) throws IOException {
+
+        String shapeFilePathRoot = Paths.get(
+                System.getProperty(TEMP_DIR),
+                shapeFileWithoutExtension + "-" + System.currentTimeMillis()).toString();
+
+        for (String extension : SHAPE_FILE_EXTENSIONS) {
+            File file = new File(shapeFilePathRoot + extension);
+            byte[] buffer = new byte[1024];
+            try (InputStream in = getClass().getResourceAsStream("/" + shapeFileWithoutExtension + extension);
+                 OutputStream out = new FileOutputStream(file)) {
+                int read;
+                while ((read = in.read(buffer)) > 0) {
+                    out.write(buffer, 0, read);
+                }
+            }
+        }
+
+        return shapeFilePathRoot;
+    }
+
 
     @Override
-    public Map<String, Integer> getResult() {
-        return currentMap;
+    public void close() {
+        for (String extension : SHAPE_FILE_EXTENSIONS) {
+            File file = new File(shapeFilePath + extension);
+            if (file.exists()) {
+                file.delete();
+            }
+        }
     }
-
 }

@@ -3,70 +3,56 @@ package com.qriously.location;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Map;
+import java.io.IOException;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class TestResolver {
 
-    @Test
-    public void runTest() {
+    static long THREAD_SLEEP = 100;
+
+    private void waitForExecutorsToComplete(ThreadPoolExecutor executorService) {
         try {
-            final LocationProvider locationProvider = new LocationProvider();
-            try (final CountyResolver resolver = new BasicCountyResolver()) {
-                resolver.init();
-
-                MyOnCompletedListener listener = new MyOnCompletedListener(locationProvider, resolver);
-
-                resolver.resolve(locationProvider, listener);
-
-                Thread.sleep(LocationProvider.MAX_RUNNING_TIME + 5000L);
-
-                listener.assertResult();
-
-                Assert.assertTrue("for some reason you never called complete on the listener", listener.isDidComplete());
+            while (executorService.getQueue().size() > 0 || executorService.getActiveCount() > 0) {
+                Thread.sleep(THREAD_SLEEP);
             }
-
-        } catch (Exception e) {
+            Thread.sleep(THREAD_SLEEP);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public class MyOnCompletedListener implements CountyResolver.OnCompletedListener {
-        private boolean didComplete = false;
-
-        private LocationProvider locationProvider;
-        private CountyResolver countyResolver;
-
-        MyOnCompletedListener(LocationProvider locationProvider, CountyResolver countyResolver) {
-            this.locationProvider = locationProvider;
-            this.countyResolver = countyResolver;
+    private ThreadPoolExecutor initialiseThreadPool(boolean preStart) {
+        ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>());
+        if (preStart) {
+            executorService.prestartAllCoreThreads();
         }
 
-        @Override
-        public void completed() {
-            didComplete = true;
-            locationProvider.stop();
-        }
-
-        void assertResult() {
-            int perSecond = locationProvider.getLinesRead() / (int) (locationProvider.getRuntime() / 1000L);
-            System.out.println("Resolved total: " + locationProvider.getLinesRead());
-            System.out.println("Resolved / second: " + perSecond);
-            Assert.assertTrue("The BasicCountyResolver should resolve at least 2000 location per second. This attempt was only : " + perSecond, perSecond > 2_000);
-
-            Map<String, Integer> currentStatus = countyResolver.getResult();
-            int resolved = 0;
-            for (String key : currentStatus.keySet()) {
-                resolved += currentStatus.get(key);
-            }
-
-            float percentResolved = (float) resolved / locationProvider.getLinesRead();
-            System.out.println("Percent resolved: " + percentResolved);
-            Assert.assertTrue("You resolved less than 90% of locations (" + percentResolved + "%), you made too big a trade-off for speed", percentResolved > 0.9f);
-
-        }
-
-        boolean isDidComplete() {
-            return didComplete;
-        }
+        return executorService;
     }
+
+    @Test
+    public void runBasicResolver() throws IOException {
+        ThreadPoolExecutor executorService = initialiseThreadPool(false);
+
+        try (CoordinateSupplier coordinateSupplier = new CoordinateSupplier();
+             CountyResolver resolver = new BasicCountyResolver(coordinateSupplier)) {
+
+            executorService.submit(resolver);
+
+            waitForExecutorsToComplete(executorService);
+
+            Assert.assertFalse("There were error when running the resolver", resolver.resolverError());
+
+            System.out.println(String.format("Resolver managed to resolve %.2f of locations (%d / %d)", resolver.getResolvedFraction(), resolver.getResolvedCount(), resolver.getAttemptedCount()));
+            Assert.assertTrue("Resolver success rate was less that required threshold (90%)", resolver.getResolvedFraction() > 0.9);
+
+            float resolveRate = resolver.getResolvedCount() / resolver.getRuntimeDuration();
+            System.out.println(String.format("Resolver managed to resolve locations at %.2f / second", resolveRate));
+            Assert.assertTrue("Resolver rate was less than required threshold (1000 per second)", (resolveRate > 2000));
+        }
+
+    }
+
 }
