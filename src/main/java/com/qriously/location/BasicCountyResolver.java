@@ -12,51 +12,59 @@ import org.opengis.filter.Filter;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-public class BasicCountyResolver extends CountyResolver implements Closeable {
+
+public class BasicCountyResolver implements CountyResolver {
 
     private static final String TEMP_DIR = "java.io.tmpdir";
     private static final String[] SHAPE_FILE_EXTENSIONS = new String[]{ ".dbf", ".prj", ".shp", ".shx" };
     private final static String USA_COUNTIES = "usa_counties";
 
-    private final String shapeFilePath;
+    private String shapeFilePath;
 
-    /**
-     * Initialise the BasicCountyResolver
-     */
-    public BasicCountyResolver(CoordinateSupplier coordinateSupplier) throws IOException {
-        super(coordinateSupplier);
-        shapeFilePath = extractShapeFiles(USA_COUNTIES);
-    }
 
     @Override
-    public String resolve(Coordinate coordinate) {
-        String countyId = null;
+    public Map<String, Integer> resolve(CoordinateSupplier coordinateSupplier) throws ResolverException {
         try {
+            shapeFilePath = extractShapeFiles(USA_COUNTIES);
             FileDataStore store = FileDataStoreFinder.getDataStore(new File(shapeFilePath + ".shp"));
             SimpleFeatureSource featureSource = store.getFeatureSource();
             String geometryPropertyName = featureSource.getSchema().getGeometryDescriptor().getLocalName();
-            Filter filter = CQL.toFilter("CONTAINS(" + geometryPropertyName + ", POINT(" + coordinate.longitude + " " + coordinate.latitude + "))");
 
-            SimpleFeatureCollection features = featureSource.getFeatures(filter);
-            SimpleFeatureIterator featureIterator = features.features();
-            while (featureIterator.hasNext()) {
-                SimpleFeature sf = featureIterator.next();
-                countyId = sf.getAttribute("LVL_2_ID").toString();
+            Map<String, AtomicInteger> result = new HashMap<>();
+            Coordinate coordinate;
+            while ((coordinate = coordinateSupplier.get()) != null) {
+                Filter filter = CQL.toFilter(
+                        "CONTAINS(" + geometryPropertyName + ", POINT(" + coordinate.longitude + " " +
+                                coordinate.latitude + "))");
 
-                if (countyId != null) {
-                    break;
+                SimpleFeatureCollection features = featureSource.getFeatures(filter);
+                SimpleFeatureIterator featureIterator = features.features();
+
+                while (featureIterator.hasNext()) {
+                    SimpleFeature sf = featureIterator.next();
+                    String countyId = sf.getAttribute("LVL_2_ID").toString();
+                    if (countyId != null) {
+                        result.computeIfAbsent(countyId, key -> new AtomicInteger(0)).incrementAndGet();
+                        break;
+                    }
                 }
+
+                featureIterator.close();
             }
 
-            featureIterator.close();
+            return result.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
 
-        } catch (IOException | CQLException ex) {
-            ex.printStackTrace();
+        } catch (IOException | CQLException e) {
+            throw new ResolverException(e);
         }
-
-        return countyId;
     }
+
 
     /**
      * Extract shapefiles from bundled resources to a temporary location
@@ -72,7 +80,7 @@ public class BasicCountyResolver extends CountyResolver implements Closeable {
             File file = new File(shapeFilePathRoot + extension);
             byte[] buffer = new byte[1024];
             try (InputStream in = getClass().getResourceAsStream("/" + shapeFileWithoutExtension + extension);
-                 OutputStream out = new FileOutputStream(file)) {
+                OutputStream out = new FileOutputStream(file)) {
                 int read;
                 while ((read = in.read(buffer)) > 0) {
                     out.write(buffer, 0, read);

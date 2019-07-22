@@ -11,9 +11,11 @@ public class CoordinateSupplier implements Supplier<Coordinate>, Closeable {
     private final static String LOCATIONS_CSV = "/locations.csv";
 
     private BufferedReader reader;
+    private int coordinatesRead;
 
     CoordinateSupplier() {
         reader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(LOCATIONS_CSV)));
+        coordinatesRead = 0;
     }
 
     @Override
@@ -25,6 +27,7 @@ public class CoordinateSupplier implements Supplier<Coordinate>, Closeable {
         String line;
         try {
             if ((line = reader.readLine()) != null) {
+                coordinatesRead++;
                 String[] parts = line.split(",");
                 return new Coordinate(Double.valueOf(parts[0]), Double.valueOf(parts[1]));
             }
@@ -33,6 +36,10 @@ public class CoordinateSupplier implements Supplier<Coordinate>, Closeable {
         }
 
         return null;
+    }
+
+    int getCoordinatesRead() {
+        return coordinatesRead;
     }
 
     @Override
