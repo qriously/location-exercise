@@ -32,8 +32,8 @@ You can trade-off between speed (time it took to resolve the location) and accur
     ```
     
 1. Implement your solution.
-    - You solution should extend the the `CountyResolver` class.
-    - Include a new test within the `ResolverTests` class to demonstrate the performance of your solution.
+    - You solution should implement the `CountyResolver` interface.
+    - Include a new test within the `ResolverTest` class to demonstrate the performance of your solution.
 
 1. Include any instructions (or other useful comments) in a clearly marked text file.
 
@@ -46,8 +46,10 @@ You can trade-off between speed (time it took to resolve the location) and accur
 
 ## Other Useful Information 
 
-- Your solution should extend the the `CountyResolver` class.
+- Your solution should implement the `CountyResolver` interface.
 - We have included a `BasicCountyResolver` as an example.
+- The `ResolverTest` runs using a small locations file (`locations-small.csv`). If you get things running really
+  quickly, try the full `locations.csv` file!
 - The project should compile using maven (i.e. `mvn clean install`).
 - Feel free to use external libraries so long as your solution cleanly runs using maven.
 - Document your progress and failures using the git commits.

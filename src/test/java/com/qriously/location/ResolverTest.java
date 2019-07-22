@@ -9,7 +9,7 @@ public class ResolverTest {
 
     @Test
     public void testBasicCountyResolver() throws Exception {
-        try (CoordinateSupplier coordinateSupplier = new CoordinateSupplier();
+        try (CoordinateSupplier coordinateSupplier = new CoordinateSupplier("/locations-small.csv");
             CountyResolver resolver = new BasicCountyResolver()) {
 
             long start = System.currentTimeMillis();
@@ -29,9 +29,9 @@ public class ResolverTest {
             Assert.assertTrue("Resolver success rate was less that required threshold (90%)",
                     resolvedFraction >= 0.9);
 
-            double resolveRate = (double) resolved / (end - start);
+            double resolveRate = (double) resolved / ((end - start) / 1000.0);
             System.out.println(String.format("Resolver managed to resolve locations at %.2f / second", resolveRate));
-            Assert.assertTrue("Resolver rate was less than required threshold (1000 per second)", (resolveRate > 1000));
+            Assert.assertTrue("Resolver rate was less than required threshold (5000 per second)", (resolveRate >= 5000));
         }
     }
 }

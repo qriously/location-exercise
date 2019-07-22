@@ -8,13 +8,11 @@ import java.util.function.Supplier;
 
 public class CoordinateSupplier implements Supplier<Coordinate>, Closeable {
 
-    private final static String LOCATIONS_CSV = "/locations.csv";
-
     private BufferedReader reader;
     private int coordinatesRead;
 
-    CoordinateSupplier() {
-        reader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(LOCATIONS_CSV)));
+    CoordinateSupplier(String locationsFile) {
+        reader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(locationsFile)));
         coordinatesRead = 0;
     }
 
