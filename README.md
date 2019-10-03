@@ -15,7 +15,7 @@ You can trade-off between speed (time it took to resolve the location) and accur
 
 ## Instructions
 
-1. Create a copy of the public `location-exercise` repository. *Please do not fork the source repo directly as you cannot restrict access to a forked public repository*). 
+1. Create a copy of the public `location-exercise` repository. *Please do not fork the source repo directly as you cannot restrict access to a forked public repository*. 
  
     - [Create a new **private** repository](https://help.github.com/en/articles/creating-a-new-repository) called `location-exercise`
     - [Duplicate the source repository](https://help.github.com/en/articles/duplicating-a-repository) (remember to replace your `{exampleuser}` in the command below)
